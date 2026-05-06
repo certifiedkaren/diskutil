@@ -26,26 +26,38 @@ off_t total_size = 0;
 int comp(const void *a, const void *b);
 off_t fsize(const char *file);
 char *size_to_string(char *buf, size_t buf_size, off_t file_size);
-
 int visit(const char *fpath, const struct stat *sb, int tflag,
-          struct FTW *ftwbuf) {
-  if (file_idx >= ARR_SIZE)
-    return 0;
-  file_arr[file_idx].fpath = strdup(fpath);
-  off_t file_size = fsize(fpath);
-  file_arr[file_idx].fsize = file_size;
+          struct FTW *ftwbuf);
+void print_help();
 
-  total_size += file_size;
-  file_idx++;
-
-  return 0;
-}
-
-int main(void) {
-  if (nftw(".", visit, 10, 0) == -1) {
-    perror("nftw() error");
+int main(int argc, char *argv[]) {
+  if (argc > 2) {
+    printf("Usage: diskutil [DIRECTORY]\n");
     return 1;
-  };
+  }
+
+  if (argc == 1) {
+    if (nftw(".", visit, 10, 0) == -1) {
+      perror("nftw() error");
+      return 1;
+    };
+  }
+
+  if (argc == 2) {
+    if (strcmp(argv[1], "help") == 0 || strcmp(argv[1], "--help") == 0 ||
+        strcmp(argv[1], "-h") == 0) {
+      print_help();
+      return 1;
+    }
+
+    if (nftw(argv[1], visit, 10, 0) == -1) {
+      fprintf(
+          stderr,
+          "failed to search directory: %s, make sure it's a valid directory\n",
+          argv[1]);
+      return 1;
+    };
+  }
 
   qsort(file_arr, file_idx, sizeof(file_arr[0]), comp);
   for (int i = 0; i < file_idx; i++) {
@@ -100,4 +112,28 @@ char *size_to_string(char *buf, size_t buf_size, off_t file_size) {
   }
   snprintf(buf, buf_size, "%dB", (int)size);
   return buf;
+}
+
+int visit(const char *fpath, const struct stat *sb, int tflag,
+          struct FTW *ftwbuf) {
+  if (file_idx >= ARR_SIZE)
+    return 0;
+  file_arr[file_idx].fpath = strdup(fpath);
+  off_t file_size = fsize(fpath);
+  file_arr[file_idx].fsize = file_size;
+
+  total_size += file_size;
+  file_idx++;
+
+  return 0;
+}
+
+void print_help() {
+  printf("Usage: diskutil [DIRECTORY]\n"
+         "\n"
+         "Display disk usage for DIRECTORY.\n"
+         "If DIRECTORY is omitted, uses current working directory\n"
+         "\n"
+         "Options:\n"
+         "  -h, --help, help     Show this help message\n");
 }

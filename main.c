@@ -21,6 +21,7 @@ struct file_info {
 
 struct file_info file_arr[ARR_SIZE];
 int file_idx = 0;
+off_t total_size = 0;
 
 int comp(const void *a, const void *b);
 off_t fsize(const char *file);
@@ -33,7 +34,10 @@ int visit(const char *fpath, const struct stat *sb, int tflag,
   file_arr[file_idx].fpath = strdup(fpath);
   off_t file_size = fsize(fpath);
   file_arr[file_idx].fsize = file_size;
+
+  total_size += file_size;
   file_idx++;
+
   return 0;
 }
 
@@ -46,10 +50,20 @@ int main(void) {
   qsort(file_arr, file_idx, sizeof(file_arr[0]), comp);
   for (int i = 0; i < file_idx; i++) {
     char buf[32];
-    printf("%-8s %s\n", size_to_string(buf, sizeof(buf), file_arr[i].fsize),
+    off_t file_size = file_arr[i].fsize;
+    printf("%-8s %s\n", size_to_string(buf, sizeof(buf), file_size),
            file_arr[i].fpath);
-    // printf("%.1f K\n", (double)file_arr[i].fsize / 1024.0);
-    // printf(".2f\n, ");
+
+    double percentage = ((double)file_size / total_size) * 100.0;
+    int pos = percentage / 5;
+
+    char line[21];
+    if (pos == 0 && file_size > 0)
+      pos++;
+    memset(line, '#', pos);
+    memset(line + pos, '-', sizeof(line) - pos);
+    line[20] = '\0';
+    printf("[%s]  %.2f%%\n", line, percentage);
   }
 }
 

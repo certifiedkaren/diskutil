@@ -10,6 +10,9 @@
 #include <unistd.h>
 
 #define ARR_SIZE 250
+#define KiB 1024LL
+#define MiB (1024LL * 1024LL)
+#define GiB (1024LL * 1024LL * 1024LL)
 
 struct file_info {
   const char *fpath;
@@ -21,6 +24,7 @@ int file_idx = 0;
 
 int comp(const void *a, const void *b);
 off_t fsize(const char *file);
+char *size_to_string(char *buf, size_t buf_size, off_t file_size);
 
 int visit(const char *fpath, const struct stat *sb, int tflag,
           struct FTW *ftwbuf) {
@@ -38,12 +42,14 @@ int main(void) {
     perror("nftw() error");
     return 1;
   };
-  int file_arr_len = sizeof(file_arr) / sizeof(file_arr[0]);
 
   qsort(file_arr, file_idx, sizeof(file_arr[0]), comp);
   for (int i = 0; i < file_idx; i++) {
-    printf("file path: %s\n", file_arr[i].fpath);
-    printf("file size (bytes): %ld\n", file_arr[i].fsize);
+    char buf[32];
+    printf("%-8s %s\n", size_to_string(buf, sizeof(buf), file_arr[i].fsize),
+           file_arr[i].fpath);
+    // printf("%.1f K\n", (double)file_arr[i].fsize / 1024.0);
+    // printf(".2f\n, ");
   }
 }
 
@@ -64,4 +70,20 @@ int comp(const void *a, const void *b) {
   if (file_a->fsize < file_b->fsize)
     return 1;
   return 0;
+}
+
+char *size_to_string(char *buf, size_t buf_size, off_t file_size) {
+  double size = (double)file_size;
+  if (size >= GiB) {
+    snprintf(buf, buf_size, "%.1fG", size / GiB);
+    return buf;
+  } else if (size >= MiB) {
+    snprintf(buf, buf_size, "%.1fM", size / MiB);
+    return buf;
+  } else if (size >= KiB) {
+    snprintf(buf, buf_size, "%.1fK", size / KiB);
+    return buf;
+  }
+  snprintf(buf, buf_size, "%dB", (int)size);
+  return buf;
 }

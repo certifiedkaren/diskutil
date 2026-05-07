@@ -92,9 +92,9 @@ int comp(const void *a, const void *b) {
   const struct file_info *file_a = a;
   const struct file_info *file_b = b;
   if (file_a->fsize > file_b->fsize)
-    return -1;
-  if (file_a->fsize < file_b->fsize)
     return 1;
+  if (file_a->fsize < file_b->fsize)
+    return -1;
   return 0;
 }
 
